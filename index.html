@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚽ 比分中心</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        /* 顶部导航 */
+        .nav {
+            background: #1a2a3a;
+            padding: 12px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        .nav-title {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 6px 16px;
+            background: rgba(255,255,255,0.15);
+            color: #ccc;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .tab.active {
+            background: #00a8ff;
+            color: #fff;
+        }
+        
+        /* 主内容 */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+        
+        /* 联赛分区 */
+        .league-section {
+            margin-bottom: 20px;
+        }
+        
+        .league-header {
+            background: #fff;
+            padding: 12px 14px;
+            border-bottom: 2px solid #00a8ff;
+            font-weight: 600;
+            font-size: 15px;
+            color: #1a2a3a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .league-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .flag {
+            width: 20px;
+            height: 14px;
+            background: #ddd;
+            border-radius: 2px;
+            display: inline-block;
+        }
+        
+        .flag.es { background: linear-gradient(to bottom, #c60b1e 25%, #ffc400 25%, #ffc400 75%, #c60b1e 75%); }
+        .flag.en { background: linear-gradient(to bottom, #012169 100%); background: repeating-linear-gradient(to right, transparent, transparent 6px, #fff 6px, #fff 10px), repeating-linear-gradient(to bottom, transparent, transparent 4px, #fff 4px, #fff 7px), linear-gradient(to bottom, #c8102e 100%); }
+        .flag.de { background: linear-gradient(to bottom, #000 33%, #dd0000 33%, #dd0000 66%, #ffcc00 66%); }
+        .flag.it { background: linear-gradient(to bottom, #009246 33%, #fff 33%, #fff 66%, #ce2b37 66%); }
+        
+        /* 赛事卡片 */
+        .match-card {
+            background: #fff;
+            padding: 12px 14px;
+            border-bottom: 1px solid #eee;
+            display: grid;
+            grid-template-columns: 1fr 60px 1fr;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .match-card:hover {
+            background: #f8f9fa;
+        }
+        
+        .match-card.live {
+            background: #fff8e6;
+            border-left: 3px solid #ff6b6b;
+        }
+        
+        .match-card.finished {
+            opacity: 0.75;
+        }
+        
+        .team-left, .team-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .team-left { justify-content: flex-end; text-align: right; }
+        .team-right { justify-content: flex-start; }
+        
+        .team-name {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .team-rank {
+            color: #999;
+            font-size: 11px;
+            min-width: 18px;
+        }
+        
+        .score-section {
+            text-align: center;
+            font-weight: 700;
+            font-size: 18px;
+            color: #1a2a3a;
+            padding: 4px 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            min-width: 50px;
+        }
+        
+        .live .score-section {
+            background: #ffe6e6;
+            color: #cc0000;
+            animation: blink 1.5s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .score.undecided {
+            color: #999;
+            font-weight: 400;
+        }
+        
+        .match-status {
+            grid-column: 1 / -1;
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+            padding-top: 2px;
+        }
+        
+        .live .match-status {
+            color: #cc0000;
+            font-weight: 600;
+        }
+        
+        .live::after {
+            content: '● 进行中';
+            display: block;
+            font-size: 10px;
+            color: #ff6b6b;
+            font-weight: 600;
+        }
+        
+        /* 日期选择 */
+        .date-filter {
+            background: #fff;
+            padding: 10px;
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        
+        .date-btn {
+            padding: 6px 14px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 13px;
+            white-space: nowrap;
+            color: #666;
+        }
+        
+        .date-btn.active {
+            background: #00a8ff;
+            color: #fff;
+        }
+        
+        /* 统计 */
+        .stats-bar {
+            background: #fff;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-around;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a2a3a;
+        }
+        
+        /* Token设置浮层 */
+        .token-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .token-overlay.show {
+            display: flex;
+        }
+        
+        .token-box {
+            background: #fff;
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 420px;
+            width: 90%;
+            color: #333;
+        }
+        
+        .token-box h3 {
+            margin-bottom: 12px;
+        }
+        
+        .token-box input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .token-box .hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+            line-height: 1.6;
+        }
+        
+        .token-box button {
+            margin-top: 12px;
+            padding: 8px 20px;
+            background: #00a8ff;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .refresh-bar {
+            background: #fff;
+            padding: 8px 14px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .refresh-bar button {
+            background: #00a8ff;
+            color: #fff;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        /* 响应式 */
+        @media (max-width: 600px) {
+            .nav-title { font-size: 16px; }
+            .match-card { padding: 10px; gap: 6px; }
+            .score-section { font-size: 16px; min-width: 44px; }
+            .team-name { font-size: 13px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-title" id="navTitle" title="点击设置 API Token">⚽ api-football 比分中心</div>
+        <div class="tabs">
+            <button class="tab active" data-filter="all">完整比分</button>
+            <button class="tab" data-filter="FINISHED">完场比分</button>
+            <button class="tab" data-filter="SCHEDULED">未开赛</button>
+            <button class="tab" data-filter="LIVE">进行中</button>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div class="stats-bar" id="statsBar">
+            <div class="stat-item"><div class="stat-value">-</div><div>进行中</div></div>
+            <div class="stat-item"><div class="stat-value">-</div><div>已完场</div></div>
+            <div class="stat-item"><div class="stat-value">-</div><div>未开赛</div></div>
+            <div class="stat-item"><div class="stat-value">-</div><div>剩余额度</div></div>
+        </div>
+        
+        <div class="refresh-bar">
+            <span id="lastUpdate">更新时间：加载中...</span>
+            <button id="btnRefresh">刷新</button>
+        </div>
+        
+        <div id="content"></div>
+    </div>
+    
+    <!-- Token 设置 -->
+    <div class="token-overlay" id="tokenOverlay">
+        <div class="token-box">
+            <h3>⚙️ API Token 设置</h3>
+            <input type="text" id="tokenInput" placeholder="粘贴你的 football-data.org token" />
+            <div class="hint">
+                1. 访问 <a href="https://www.football-data.org/client/register" target="_blank">football-data.org</a> 注册账号<br>
+                2. 注册后进入 Dashboard 复制 X-Auth-Token<br>
+                3. 粘贴到上方并保存（保存在浏览器本地）<br>
+                <br>
+                免费计划额度：10 次/分钟，100 次/天
+            </div>
+            <button id="btnSaveToken">保存并加载</button>
+        </div>
+    </div>
+
+    <script>
+        // ====== 配置区域 ======
+        // 要监控的联赛ID（football-data.org v4 代码）
+        // 可直接修改或扩展
+        const LEAGUES = {
+            'PD': { name: '西甲', flag: 'es', season: '24/25' },
+            'PL': { name: '英超', flag: 'en', season: '24/25' },
+            'BL1': { name: '德甲', flag: 'de', season: '24/25' },
+            'SA': { name: '意甲', flag: 'it', season: '24/25' },
+            'FL1': { name: '法甲', flag: 'fr', season: '24/25' }
+        };
+        
+        const LEAGUE_IDS = Object.keys(LEAGUES); // [PD, PL, BL1, SA, FL1]
+        // ========================
+        
+        const API_BASE = 'https://api.football-data.org/v4';
+        let currentFilter = 'all'; // all | FINISHED | LIVE | SCHEDULED
+        
+        // 从 localStorage 读取 token
+        function getToken() {
+            return localStorage.getItem('football_token') || '';
+        }
+        
+        function saveToken(token) {
+            localStorage.setItem('football_token', token);
+        }
+        
+        // 请求头
+        function headers() {
+            const h = { 'Accept': 'application/json' };
+            const t = getToken();
+            if (t) h['X-Auth-Token'] = t;
+            return h;
+        }
+        
+        // 获取剩余请求数（从响应头解析）
+        let rateRemaining = null;
+        let rateReset = null;
+        
+        async function fetchWithRate(url) {
+            const res = await fetch(url, { headers: headers() });
+            rateRemaining = res.headers.get('X-Requests-Available-Minute');
+            rateReset = res.headers.get('X-RequestCounter-Reset');
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`API ${res.status}: ${text}`);
+            }
+            return res.json();
+        }
+        
+        // 获取今日比赛
+        async function loadMatches(date) {
+            const today = date || new Date().toISOString().slice(0, 10);
+            const ids = LEAGUE_IDS.join(',');
+            const url = `${API_BASE}/matches?competitions=${ids}&dateFrom=${today}&dateTo=${today}&status=FT,LIVE,IN_PLAY,PAUSED,SCHEDULED`;
+            const data = await fetchWithRate(url);
+            return data.matches || [];
+        }
+        
+        // 渲染
+        function renderMatches(matches, filter) {
+            if (!matches.length) {
+                return '<p style="text-align:center;color:#999;padding:40px;">暂无赛事数据</p>';
+            }
+            
+            // 按联赛分组
+            const grouped = {};
+            matches.forEach(m => {
+                const code = m.competition?.code || 'OTHER';
+                if (!grouped[code]) grouped[code] = [];
+                grouped[code].push(m);
+            });
+            
+            // 过滤
+            let filtered = [];
+            if (filter === 'all') filtered = matches;
+            else filtered = matches.filter(m => m.status === filter);
+            
+            if (filtered.length === 0) {
+                return '<p style="text-align:center;color:#999;padding:40px;">该分类暂无比赛</p>';
+            }
+            
+            let html = '';
+            // 确保联赛顺序
+            const orderedKeys = [...LEAGUE_IDS, ...Object.keys(grouped).filter(k => !LEAGUE_IDS.includes(k))];
+            orderedKeys.forEach(code => {
+                const leagueMatches = grouped[code];
+                if (!leagueMatches || !leagueMatches.length) return;
+                
+                const league = LEAGUES[code] || { name: leagueMatches[0].competition?.name || code, flag: '', season: '' };
+                html += `
+                <div class="league-section">
+                    <div class="league-header">
+                        <div class="league-name">
+                            <span class="flag ${league.flag}"></span>
+                            ${league.name} · ${code}
+                        </div>
+                        <span style="font-size:12px;color:#999;">${league.season}</span>
+                    </div>`;
+                
+                leagueMatches.forEach(m => {
+                    const homeScore = m.score?.fullTime?.home;
+                    const awayScore = m.score?.fullTime?.away;
+                    const statusClass = m.status === 'FINISHED' ? 'finished' : (m.status === 'LIVE' || m.status === 'IN_PLAY') ? 'live' : '';
+                    
+                    html += `
+                    <div class="match-card ${statusClass}">
+                        <div class="team-left">
+                            <span class="team-rank">${m.homeTeam.shortName || ''}</span>
+                            <span class="team-name" title="${m.homeTeam.name}">${m.homeTeam.name}</span>
+                        </div>
+                        <div class="score-section">${renderScore(m)}</div>
+                        <div class="team-right">
+                            <span class="team-name" title="${m.awayTeam.name}">${m.awayTeam.name}</span>
+                            <span class="team-rank">${m.awayTeam.shortName || ''}</span>
+                        </div>
+                        <div class="match-status">${formatTime(m)}</div>
+                    </div>`;
+                });
+                
+                html += '</div>';
+            });
+            
+            return html;
+        }
+        
+        function renderScore(m) {
+            if (m.status === 'SCHEDULED') return '<span class="undecided">VS</span>';
+            const home = m.score?.fullTime?.home;
+            const away = m.score?.fullTime?.away;
+            if (home == null || away == null) return '<span class="undecided">VS</span>';
+            return `${home} - ${away}`;
+        }
+        
+        function formatTime(m) {
+            if (m.status === 'FINISHED') return '完场';
+            if (m.status === 'LIVE' || m.status === 'IN_PLAY' || m.status === 'PAUSED') {
+                const min = m.minute || '';
+                return min ? `${min}'` : '进行中';
+            }
+            const d = new Date(m.utcDate);
+            if (!isNaN(d)) {
+                return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            }
+            return '未开赛';
+        }
+        
+        async function update() {
+            const content = document.getElementById('content');
+            content.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">加载中...</p>';
+            
+            try {
+                const matches = await loadMatches();
+                
+                // 统计
+                const statsBar = document.getElementById('statsBar');
+                const statItems = statsBar.querySelectorAll('.stat-value');
+                statItems[0].textContent = matches.filter(m => m.status === 'LIVE' || m.status === 'IN_PLAY').length;
+                statItems[1].textContent = matches.filter(m => m.status === 'FINISHED').length;
+                statItems[2].textContent = matches.filter(m => m.status === 'SCHEDULED').length;
+                statItems[3].textContent = rateRemaining != null ? rateRemaining : '-';
+                
+                content.innerHTML = renderMatches(matches, currentFilter);
+                document.getElementById('lastUpdate').textContent = '更新时间：' + new Date().toLocaleTimeString();
+            } catch (e) {
+                console.error(e);
+                content.innerHTML = `
+                    <p style="text-align:center;padding:40px;color:#c00;">
+                        ${escapeHtml(e.message)}
+                    </p>
+                    <p style="text-align:center;color:#666;font-size:12px;">
+                        提示：点击顶部标题可设置 API Token
+                    </p>`;
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Token 浮层
+        const overlay = document.getElementById('tokenOverlay');
+        const tokenInput = document.getElementById('tokenInput');
+        
+        document.getElementById('navTitle').addEventListener('click', (e) => {
+            if (e.target.tagName === 'A') return;
+            tokenInput.value = getToken();
+            overlay.classList.add('show');
+        });
+        
+        document.getElementById('btnSaveToken').addEventListener('click', () => {
+            const token = tokenInput.value.trim();
+            if (token) {
+                saveToken(token);
+            } else {
+                localStorage.removeItem('football_token');
+            }
+            overlay.classList.remove('show');
+            update();
+        });
+        
+        // 标签切换
+        document.querySelectorAll('.tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                update();
+            });
+        });
+        
+        // 日期切换（简单版：今天/昨天/明天）
+        let selectedDate = new Date();
+        document.querySelectorAll('.date-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+        // 注意：football-data 普通账号不能按历史日期取（除当前赛季），
+        // 所以日期按钮这里先只做视觉，点击"前一天/后一天"可切
+        document.querySelectorAll('.date-btn').forEach((btn, idx) => {
+            btn.addEventListener('click', () => {
+                selectedDate = new Date();
+                if (idx === 0) selectedDate.setDate(selectedDate.getDate() - 1);
+                if (idx === 2) selectedDate.setDate(selectedDate.getDate() + 1);
+                update();
+            });
+        });
+        
+        // 刷新
+        document.getElementById('btnRefresh').addEventListener('click', update);
+        
+        // 初始化
+        if (getToken()) {
+            update();
+        } else {
+            overlay.classList.add('show');
+        }
+        
+        // 无自动刷新，改为手动刷新
+    </script>
+</body>
+</html>
